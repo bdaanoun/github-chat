@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub RAG AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Scripts -->
+    <script src="state/store.js" defer></script>
+    <script src="services/api.js" defer></script>
+    <script src="components/message.js" defer></script>
+    <script src="components/input.js" defer></script>
+    <script src="components/chat.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>GitHub AI RAG</h2>
+            </div>
+            
+            <div class="profile-loader">
+                <p>Load a developer's GitHub context into the AI's Brain.</p>
+                <form id="load-profile-form">
+                    <input type="text" id="github-username" placeholder="GitHub username..." required autocomplete="off">
+                    <button type="submit" id="load-profile-btn">
+                        <span>Load Context</span>
+                        <div class="loader-spinner hidden" id="load-spinner"></div>
+                    </button>
+                </form>
+                <div id="load-status" class="status-message"></div>
+            </div>
+
+            <div class="context-info hidden" id="context-info">
+                <h3>Active Context</h3>
+                <div class="context-card">
+                    <img src="" id="context-avatar" alt="Avatar"/>
+                    <div class="context-details">
+                        <h4 id="context-name">Username</h4>
+                        <span id="context-stats">0 Repos | 0 Chunks</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <div class="chat-header">
+                <h3>Chat with AI</h3>
+                <span class="status-indicator waiting" id="chat-status-indicator">Awaiting context...</span>
+            </div>
+            
+            <div class="chat-history" id="chat-history">
+                <div class="welcome-message">
+                    <h1>Ready to explore code?</h1>
+                    <p>Load a profile on the left, then ask me anything about their repositories.</p>
+                </div>
+            </div>
+            
+            <div class="chat-input-wrapper">
+                <form id="chat-input-form">
+                    <input type="text" id="chat-input" placeholder="Ask a question about the developer..." disabled autocomplete="off">
+                    <button type="submit" id="send-btn" disabled>
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const API = {
     // Automatically switch between local testing and production
-    BASE_URL: isLocal ? "http://localhost:8000/api" : "https://github-chat-kl42.onrender.com/api",
+    BASE_URL: isLocal ? "http://localhost:8000/api" : "https://bdaanoun-github-chat.hf.space/api",
 
     async loadProfile(username) {
         const response = await fetch(`${this.BASE_URL}/profile/load`, {
@@ -11,7 +11,7 @@ const API = {
             },
             body: JSON.stringify({ username })
         });
-        
+
         const data = await response.json();
         if (!response.ok) {
             throw new Error(data.detail || "Failed to load profile");
@@ -27,7 +27,7 @@ const API = {
             },
             body: JSON.stringify({ username, question })
         });
-        
+
         const data = await response.json();
         if (!response.ok) {
             throw new Error(data.detail || "Failed to fetch answer");

@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     
     # RAG Settings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
-    CHUNK_SIZE: int = 500
+    CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 50
-    TOP_K_RETRIEVAL: int = 5
+    TOP_K_RETRIEVAL: int = 10
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

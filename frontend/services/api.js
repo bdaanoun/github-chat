@@ -1,7 +1,7 @@
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const API = {
     // Automatically switch between local testing and production
-    BASE_URL: isLocal ? "http://localhost:8000/api" : "https://YOUR_RENDER_URL.onrender.com/api",
+    BASE_URL: isLocal ? "http://localhost:8000/api" : "https://github-rag-backend.onrender.com/api",
 
     async loadProfile(username) {
         const response = await fetch(`${this.BASE_URL}/profile/load`, {

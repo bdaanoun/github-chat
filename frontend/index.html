@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub RAG AI Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>GitHub AI RAG — Chat with any Developer</title>
+    <meta name="description" content="Explore any GitHub developer's codebase with AI-powered RAG. Ask questions about their projects, architecture, and coding patterns.">
     <link rel="stylesheet" href="style.css">
-    
+
     <!-- Scripts -->
     <script src="state/store.js" defer></script>
     <script src="services/api.js" defer></script>
@@ -17,61 +17,139 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
+
+        <!-- ── Sidebar ───────────────────────────────────────── -->
         <aside class="sidebar">
+
+            <!-- Brand -->
             <div class="sidebar-header">
-                <h2>GitHub AI RAG</h2>
-            </div>
-            
-            <div class="profile-loader">
-                <p>Load a developer's GitHub context into the AI's Brain.</p>
-                <form id="load-profile-form">
-                    <input type="text" id="github-username" placeholder="GitHub username..." required autocomplete="off">
-                    <button type="submit" id="load-profile-btn">
-                        <span>Load Context</span>
-                        <div class="loader-spinner hidden" id="load-spinner"></div>
-                    </button>
-                </form>
-                <div id="load-status" class="status-message"></div>
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">GitHub RAG</span>
+                    <span class="brand-sub">AI Assistant</span>
+                </div>
             </div>
 
-            <div class="context-info hidden" id="context-info">
-                <h3>Active Context</h3>
+            <!-- Profile Loader -->
+            <div class="profile-loader">
+                <span class="sidebar-label">Developer Context</span>
+                <p>Load a developer's GitHub profile to begin chatting about their work.</p>
+
+                <div class="input-group">
+                    <form id="load-profile-form">
+                        <input
+                            type="text"
+                            id="github-username"
+                            placeholder="e.g. torvalds"
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <div style="margin-top:8px;">
+                            <button type="submit" id="load-profile-btn" class="btn-primary" style="width:100%;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                                <span id="load-btn-text">Analyse Profile</span>
+                                <div class="loader-spinner hidden" id="load-spinner"></div>
+                            </button>
+                        </div>
+                    </form>
+                    <div id="load-status" class="status-message"></div>
+                </div>
+            </div>
+
+            <hr class="sidebar-divider">
+
+            <!-- Active Context -->
+            <div class="context-section hidden" id="context-info">
+                <span class="sidebar-label">Active Context</span>
+
                 <div class="context-card">
-                    <img src="" id="context-avatar" alt="Avatar"/>
+                    <div class="context-avatar-wrap">
+                        <img src="" id="context-avatar" alt="GitHub Avatar">
+                        <span class="avatar-online"></span>
+                    </div>
                     <div class="context-details">
-                        <h4 id="context-name">Username</h4>
-                        <span id="context-stats">0 Repos | 0 Chunks</span>
+                        <h4 id="context-name">—</h4>
+                        <span>GitHub Developer</span>
+                    </div>
+                </div>
+
+                <div class="context-stats">
+                    <div class="stat-pill">
+                        <span class="val" id="stat-repos">0</span>
+                        <span class="lbl">Repos</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="val" id="stat-chunks">0</span>
+                        <span class="lbl">Chunks</span>
                     </div>
                 </div>
             </div>
+
         </aside>
 
-        <!-- Main Chat Area -->
+        <!-- ── Main Chat Area ────────────────────────────────── -->
         <main class="chat-area">
+
+            <!-- Header -->
             <div class="chat-header">
-                <h3>Chat with AI</h3>
-                <span class="status-indicator waiting" id="chat-status-indicator">Awaiting context...</span>
-            </div>
-            
-            <div class="chat-history" id="chat-history">
-                <div class="welcome-message">
-                    <h1>Ready to explore code?</h1>
-                    <p>Load a profile on the left, then ask me anything about their repositories.</p>
+                <div class="header-left">
+                    <h3>Chat</h3>
+                    <div class="header-model-badge">RAG · Semantic Search</div>
+                </div>
+                <div class="status-badge waiting" id="chat-status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="chat-status-text">Awaiting context</span>
                 </div>
             </div>
-            
+
+            <!-- Messages -->
+            <div class="chat-history" id="chat-history">
+                <div class="welcome-screen">
+                    <div class="welcome-orb">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                        </svg>
+                    </div>
+                    <h1>Explore any codebase</h1>
+                    <p>Load a GitHub developer's profile on the left, then ask me anything about their repositories, tech stack, or coding patterns.</p>
+                    <div class="welcome-chips">
+                        <span class="chip" data-question="What languages does this developer use most?">🔬 Tech stack</span>
+                        <span class="chip" data-question="What are their most interesting projects?">⭐ Top projects</span>
+                        <span class="chip" data-question="What coding patterns do they follow?">🏗️ Architecture</span>
+                        <span class="chip" data-question="How do they handle testing in their projects?">✅ Testing</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
             <div class="chat-input-wrapper">
                 <form id="chat-input-form">
-                    <input type="text" id="chat-input" placeholder="Ask a question about the developer..." disabled autocomplete="off">
-                    <button type="submit" id="send-btn" disabled>
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    <input
+                        type="text"
+                        id="chat-input"
+                        placeholder="Ask anything about the developer..."
+                        disabled
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <button type="submit" id="send-btn" disabled aria-label="Send message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                         </svg>
                     </button>
                 </form>
+                <p class="input-hint">AI answers are grounded in GitHub data — not hallucinated.</p>
             </div>
+
         </main>
     </div>
 </body>

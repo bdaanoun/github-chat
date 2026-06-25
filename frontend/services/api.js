@@ -1,4 +1,10 @@
-const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const isLocal =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "" ||            // file:// opened directly
+    /^192\.168\./.test(window.location.hostname) ||
+    /^10\./.test(window.location.hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(window.location.hostname);
 const API = {
     // Automatically switch between local testing and production
     BASE_URL: isLocal ? "http://localhost:8000/api" : "https://bdaanoun-github-chat.hf.space/api",

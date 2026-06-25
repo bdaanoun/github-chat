@@ -1,23 +1,31 @@
 import openai
+from typing import List, Optional
 from backend.config.settings import settings
 from backend.rag.prompt import PromptBuilder
 from backend.models.schemas import SourceChunk
-from typing import List
 from backend.utils.logger import logger
+
 
 class LLMClient:
     def __init__(self):
         client_kwargs = {"api_key": settings.OPENAI_API_KEY}
         if settings.OPENAI_API_BASE:
             client_kwargs["base_url"] = settings.OPENAI_API_BASE
-            
+
         self.client = openai.AsyncOpenAI(**client_kwargs)
 
-    async def generate_answer(self, question: str, context_chunks: List[SourceChunk]) -> str:
+    async def generate_answer(
+        self,
+        question: str,
+        context_chunks: List[SourceChunk],
+        all_repos: Optional[List[tuple]] = None,
+    ) -> str:
         try:
-            sys_prompt = PromptBuilder.build_system_prompt()
+            # System prompt includes the complete repo list so the LLM always
+            # knows every indexed repo — not just the ones in the retrieved chunks
+            sys_prompt = PromptBuilder.build_system_prompt(all_repos=all_repos)
             user_prompt = PromptBuilder.build_user_prompt(question, context_chunks)
-            
+
             response = await self.client.chat.completions.create(
                 model=settings.LLM_MODEL,
                 messages=[

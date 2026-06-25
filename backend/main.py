@@ -1,14 +1,26 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api import profile, ask
 from backend.utils.logger import logger
 
-app = FastAPI(title="GitHub Profile RAG API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage startup and shutdown lifecycle."""
+    logger.info("Starting up GitHub Profile RAG API.")
+    yield
+    # Gracefully close the shared GitHub HTTP client on shutdown
+    await profile.github_client.close()
+    logger.info("GitHub HTTP client closed. Shutting down.")
+
+
+app = FastAPI(title="GitHub Profile RAG API", lifespan=lifespan)
 
 # Setup CORS for local frontend execution
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -18,9 +30,6 @@ app.add_middleware(
 app.include_router(profile.router, prefix="/api", tags=["Profile"])
 app.include_router(ask.router, prefix="/api", tags=["Ask"])
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting up GitHub Profile RAG API.")
 
 @app.get("/")
 def root():

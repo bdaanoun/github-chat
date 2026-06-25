@@ -1,15 +1,32 @@
-from typing import List
+from typing import List, Optional
 from backend.models.schemas import SourceChunk
+
 
 class PromptBuilder:
     @staticmethod
-    def build_system_prompt() -> str:
-        return """You are a GitHub Profile AI Assistant. 
-Your goal is to answer questions about a developer based strictly on their provided repository data.
-If the answer is not contained within the provided Context below, say "I don't have enough information to answer that based on the fetched repositories."
-Do not hallucinate or make up any information outside of the context. Provide clear, helpful answers."""
+    def build_system_prompt(all_repos: Optional[List[tuple]] = None) -> str:
+        base = (
+            "You are a GitHub Profile AI Assistant.\n"
+            "Your goal is to answer questions about a developer based strictly on their provided repository data.\n"
+            "If the answer is not contained within the provided Context below, say "
+            "\"I don't have enough information to answer that based on the fetched repositories.\"\n"
+            "Do not hallucinate or make up any information outside of the context. "
+            "Provide clear, helpful answers."
+        )
 
-    # Safety cap: max words per snippet to stay within Groq's 6 000 TPM limit
+        if all_repos:
+            repo_lines = "\n".join(
+                f"  - {name}: https://github.com/{name} ({url})"
+                for name, url in all_repos
+            )
+            base += (
+                f"\n\nThe developer has the following {len(all_repos)} indexed repositories "
+                f"(use this list when asked to enumerate repos):\n{repo_lines}"
+            )
+
+        return base
+
+    # Safety cap: max words per snippet to stay within LLM TPM limits
     MAX_SNIPPET_WORDS = 200
 
     @staticmethod
@@ -22,10 +39,9 @@ Do not hallucinate or make up any information outside of the context. Provide cl
                 snippet = " ".join(words[:PromptBuilder.MAX_SNIPPET_WORDS]) + "…"
             context_text += f"---\nSource {i+1}: {chunk.repo_name} ({chunk.repo_url})\n{snippet}\n"
 
-        prompt = f"""Context:
+        return f"""Context:
 {context_text}
 
 User Question: {question}
 
-Answer based ONLY on the context above."""
-        return prompt
+Answer based ONLY on the context above and the repository list in the system prompt."""

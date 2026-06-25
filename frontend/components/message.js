@@ -99,19 +99,23 @@ const MessageBuilder = {
         out = out.replace(/^## (.+)$/gm,  '<h3 style="margin:12px 0 6px;font-size:1rem;color:var(--text)">$1</h3>');
         out = out.replace(/^# (.+)$/gm,   '<h2 style="margin:14px 0 8px;font-size:1.1rem;color:var(--text)">$1</h2>');
 
-        // Bullet lists (lines starting with - or *)
-        out = out.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
-        out = out.replace(/(<li>.*<\/li>\n?)+/g, match => `<ul>${match}</ul>`);
+        // Bullet lists (lines starting with - or *) — mark distinctly then wrap
+        out = out.replace(/^[\-\*] (.+)$/gm, '<li class="ul-item">$1</li>');
+        out = out.replace(/(<li class="ul-item">.*<\/li>\n?)+/g, match => `<ul>${match}</ul>`);
 
-        // Numbered lists
-        out = out.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+        // Numbered lists — mark distinctly then wrap in <ol>
+        out = out.replace(/^\d+\. (.+)$/gm, '<li class="ol-item">$1</li>');
+        out = out.replace(/(<li class="ol-item">.*<\/li>\n?)+/g, match => `<ol>${match}</ol>`);
+
+        // Strip helper classes (they were only needed to disambiguate)
+        out = out.replace(/ class="(ul|ol)-item"/g, '');
 
         // Paragraphs: double newlines to <p>
         const parts = out.split(/\n{2,}/);
         out = parts.map(block => {
             block = block.trim();
             if (!block) return '';
-            if (/^<(h[1-4]|ul|ol|li|pre)/.test(block)) return block;
+            if (/^<(h[1-4]|ul|ol|li|pre|p)/.test(block)) return block;
             // Single newlines within paragraph → <br>
             return `<p>${block.replace(/\n/g, '<br>')}</p>`;
         }).join('');

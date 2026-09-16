@@ -69,13 +69,13 @@ Create a `.env` file in the project root:
 # GitHub (optional — increases rate limits)
 GITHUB_TOKEN=ghp_your_token_here
 
-# Ollama LLM Configuration
-OPENAI_API_KEY=ollama
-OPENAI_API_BASE=http://localhost:11434/v1
-LLM_MODEL=llama3
+# Google Gemini LLM Configuration
+OPENAI_API_KEY=your_gemini_api_key
+OPENAI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_MODEL=gemini-2.5-flash
 ```
 
-> **Note:** Ollama exposes an OpenAI-compatible API at `http://localhost:11434/v1`, so no code changes are required — just set the environment variables above.
+> **Note:** Gemini exposes an OpenAI-compatible API, so the existing LLM client works without code changes. Create a Gemini API key in Google AI Studio and set the variables above.
 
 ### 3. Start the Backend
 
@@ -109,9 +109,9 @@ All settings are managed via environment variables or a `.env` file:
 | Variable | Default | Description |
 |---|---|---|
 | `GITHUB_TOKEN` | `""` | GitHub personal access token (optional) |
-| `OPENAI_API_KEY` | `"sk-placeholder"` | API key (set to `ollama` for Ollama) |
-| `OPENAI_API_BASE` | `""` | LLM API base URL (`http://localhost:11434/v1` for Ollama) |
-| `LLM_MODEL` | `"gpt-3.5-turbo"` | Model name (`llama3`, `mistral`, etc.) |
+| `OPENAI_API_KEY` | `""` | Google Gemini API key |
+| `OPENAI_API_BASE` | `"https://generativelanguage.googleapis.com/v1beta/openai/"` | Gemini OpenAI-compatible API URL |
+| `LLM_MODEL` | `"gemini-2.5-flash"` | Gemini model name |
 | `EMBEDDING_MODEL` | `"all-MiniLM-L6-v2"` | Sentence-transformer model for embeddings |
 | `CHUNK_SIZE` | `500` | Characters per text chunk |
 | `CHUNK_OVERLAP` | `50` | Overlap between consecutive chunks |

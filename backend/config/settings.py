@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # LLM Settings (Gemini's OpenAI-compatible endpoint)
     OPENAI_API_KEY: str = ""
     OPENAI_API_BASE: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
-    LLM_MODEL: str = "gemini-2.5-flash"
+    LLM_MODEL: str = "gemini-3.6-flash"
 
     # GitHub indexing limits
     # Set MAX_REPOS=0 for unlimited (only safe with a GITHUB_TOKEN)

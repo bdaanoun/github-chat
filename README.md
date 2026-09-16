@@ -72,7 +72,7 @@ GITHUB_TOKEN=ghp_your_token_here
 # Google Gemini LLM Configuration
 OPENAI_API_KEY=your_gemini_api_key
 OPENAI_API_BASE=https://generativelanguage.googleapis.com/v1beta/openai/
-LLM_MODEL=gemini-2.5-flash
+LLM_MODEL=gemini-3.6-flash
 ```
 
 > **Note:** Gemini exposes an OpenAI-compatible API, so the existing LLM client works without code changes. Create a Gemini API key in Google AI Studio and set the variables above.
@@ -111,7 +111,7 @@ All settings are managed via environment variables or a `.env` file:
 | `GITHUB_TOKEN` | `""` | GitHub personal access token (optional) |
 | `OPENAI_API_KEY` | `""` | Google Gemini API key |
 | `OPENAI_API_BASE` | `"https://generativelanguage.googleapis.com/v1beta/openai/"` | Gemini OpenAI-compatible API URL |
-| `LLM_MODEL` | `"gemini-2.5-flash"` | Gemini model name |
+| `LLM_MODEL` | `"gemini-3.6-flash"` | Gemini model name |
 | `EMBEDDING_MODEL` | `"all-MiniLM-L6-v2"` | Sentence-transformer model for embeddings |
 | `CHUNK_SIZE` | `500` | Characters per text chunk |
 | `CHUNK_OVERLAP` | `50` | Overlap between consecutive chunks |

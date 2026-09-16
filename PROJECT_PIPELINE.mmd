@@ -1,0 +1,155 @@
+```mermaid
+flowchart TB
+    %% Deployment
+    subgraph Deployment[Deployment]
+        User[User browser]
+        Netlify[Netlify frontend\nhttps://github-chat.netlify.app/]
+        HF[Hugging Face Space\nFastAPI + Uvicorn]
+        Env[Environment variables\nGITHUB_TOKEN\nOPENAI_API_KEY\nOPENAI_API_BASE\nLLM_MODEL]
+    end
+
+    User --> Netlify
+    Netlify -->|HTTP JSON API| HF
+    Env -.-> HF
+
+    %% Frontend
+    subgraph Frontend[Frontend: frontend/]
+        HTML[index.html]
+        App[app.js]
+        Chat[components/chat.js]
+        Input[components/input.js]
+        Message[components/message.js]
+        API[services/api.js]
+        Store[state/store.js]
+        CSS[style.css]
+
+        HTML --> App
+        App --> Chat
+        Chat --> Input
+        Chat --> Message
+        Chat --> API
+        Chat --> Store
+        HTML --> CSS
+    end
+
+    Netlify --> Frontend
+    API -->|POST /api/profile/load| ProfileRoute
+    API -->|POST /api/ask| AskRoute
+
+    %% Backend routes
+    subgraph Backend[Backend: backend/]
+        Main[main.py\nFastAPI app + CORS + lifespan]
+        ProfileRoute[api/profile.py\nProfile loading route]
+        AskRoute[api/ask.py\nQuestion route]
+        Schemas[models/schemas.py\nRequest and response models]
+        Settings[config/settings.py\nRuntime configuration]
+        Logger[utils/logger.py]
+
+        Main --> ProfileRoute
+        Main --> AskRoute
+        ProfileRoute --> Schemas
+        AskRoute --> Schemas
+        Settings -.-> Main
+        Settings -.-> ProfileRoute
+        Settings -.-> AskRoute
+        Logger -.-> Main
+        Logger -.-> ProfileRoute
+        Logger -.-> AskRoute
+    end
+
+    HF --> Main
+
+    %% Profile indexing pipeline
+    subgraph Indexing[Profile indexing pipeline]
+        ProfileRoute --> Normalize[Normalize username\nstrip + lowercase]
+        Normalize --> CacheCheck{Already indexed\nin current process?}
+        CacheCheck -->|Yes| CacheResponse[Return cached FAISS index\nNo GitHub download or embedding]
+        CacheCheck -->|No| RepoList[GitHubClient.fetch_user_repos]
+
+        RepoList --> GitHubRepos[GitHub REST API\nGET /users/{username}/repos]
+        GitHubRepos --> ForkFilter[Remove repositories where\nfork == true]
+        ForkFilter --> OwnedRepos[Owned repositories only]
+        OwnedRepos --> RepoWorkers[Process repositories concurrently]
+
+        RepoWorkers --> Readme[Fetch README\nGET /repos/{owner}/{repo}/readme]
+        RepoWorkers --> Archive[Download ZIP archive\nGET /repos/{owner}/{repo}/zipball/HEAD]
+        Archive --> Extract[Extract archive in memory]
+        Extract --> FileFilter[Keep supported files\nmax 100 KB each\nmax MAX_FILES_PER_REPO]
+        Readme --> RepoText
+        FileFilter --> RepoText[Combine metadata + README + files]
+
+        RepoText --> Chunker[TextChunker\nCHUNK_SIZE=150\nCHUNK_OVERLAP=20]
+        Chunker --> Chunks[Text chunks]
+        Chunks --> EmbedTexts[Embedder.embed_texts]
+        EmbedTexts --> EmbeddingModel[Sentence Transformers\nall-MiniLM-L6-v2]
+        EmbeddingModel --> Vectors[Normalized embeddings]
+        Vectors --> AddFAISS[Add vectors + metadata]
+        AddFAISS --> FAISS
+        FAISS --> Indexed[Profile indexed\nrepository count + chunk count]
+        Indexed --> ProfileResponse[ProfileLoadResponse]
+        CacheResponse --> ProfileResponse
+    end
+
+    ProfileRoute --> Normalize
+    ProfileResponse --> API
+    API -->|Display status and counts| Chat
+
+    %% Vector storage
+    subgraph VectorStorage[Vector storage: in-memory only]
+        FAISS[vector_store.indices[username]\nFAISS IndexFlatIP]
+        Metadata[vector_store.metadata[username]\nrepo name + URL + chunk text]
+        AddFAISS --> Metadata
+        FAISS -. synchronized with .-> Metadata
+    end
+
+    %% Question answering pipeline
+    subgraph QA[Question answering pipeline]
+        AskRoute --> AskNormalize[Normalize username\nstrip + lowercase]
+        AskNormalize --> RepoListForPrompt[Get indexed repository list]
+        AskNormalize --> QueryEmbed[Embed question]
+        QueryEmbed --> EmbeddingModel
+        QueryEmbed --> FAISSSearch[FAISS similarity search\nTOP_K_RETRIEVAL=10]
+        FAISSSearch --> Context[Top relevant SourceChunk objects]
+        RepoListForPrompt --> Prompt[PromptBuilder]
+        Context --> Prompt
+        Prompt --> GeminiCall[LLMClient.generate_answer]
+        GeminiCall --> Gemini[Google Gemini OpenAI-compatible API\nOPENAI_API_BASE\nLLM_MODEL=gemini-3.6-flash]
+        Gemini --> Answer[Answer text]
+        Context --> Sources[Source chunks]
+        Answer --> AskResponse[AskResponse\nanswer + sources]
+        Sources --> AskResponse
+    end
+
+    AskRoute --> AskNormalize
+    EmbeddingModel -. shared embedding model .-> QueryEmbed
+    AskResponse --> API
+    API -->|Render answer and sources| Chat
+
+    %% External services
+    subgraph External[External services]
+        GitHub[GitHub API]
+        Gemini
+    end
+    GitHubRepos --> GitHub
+    Readme --> GitHub
+    Archive --> GitHub
+
+    %% Error paths
+    GitHubRepos --> GitHubErrors{GitHub response}
+    GitHubErrors -->|401| AuthError[Invalid GITHUB_TOKEN\nAPI returns 502]
+    GitHubErrors -->|403| RateError[Rate limit or rejected request\nlog limit, remaining, reset\nAPI returns 502]
+    GitHubErrors -->|404 or empty| NotFound[No repositories found\nAPI returns 404]
+    GeminiCall --> LLMError[LLM exception\nreturned as answer error]
+
+    %% Lifecycle notes
+    Restart[Space restart, sleep, crash, or redeploy] -. clears .-> FAISS
+    Restart -. clears .-> Metadata
+    FAISS -. no persistent database .-> Temporary[Repositories and vectors\nexist only in process memory]
+
+    classDef external fill:#e8f4ff,stroke:#2878b5,color:#123;
+    classDef storage fill:#fff4d6,stroke:#b7791f,color:#432;
+    classDef error fill:#ffe6e6,stroke:#c53030,color:#521;
+    class GitHub,Gemini external;
+    class FAISS,Metadata,Temporary storage;
+    class AuthError,RateError,NotFound,LLMError error;
+```

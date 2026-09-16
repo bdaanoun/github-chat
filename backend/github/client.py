@@ -1,6 +1,8 @@
 import httpx
 import asyncio
 import base64
+import io
+import zipfile
 from typing import List, Dict, Any, Optional
 from backend.config.settings import settings
 from backend.utils.logger import logger
@@ -21,9 +23,14 @@ HAS_TOKEN = bool(settings.GITHUB_TOKEN)
 MAX_REPOS         = settings.MAX_REPOS
 MAX_FILES_PER_REPO = settings.MAX_FILES_PER_REPO
 REQUEST_TIMEOUT   = 20  # seconds
+ARCHIVE_TIMEOUT   = 60  # repository archives can be larger than API JSON responses
 
 # Semaphore: max concurrent GitHub API requests in flight at once
 _API_SEMAPHORE = asyncio.Semaphore(15 if HAS_TOKEN else 3)
+
+
+class GitHubAuthenticationError(Exception):
+    """Raised when GitHub rejects the configured access token."""
 
 
 class GitHubClient:
@@ -37,6 +44,7 @@ class GitHubClient:
         self._client = httpx.AsyncClient(
             headers=self.headers,
             timeout=REQUEST_TIMEOUT,
+            follow_redirects=True,
         )
 
     async def close(self) -> None:
@@ -87,13 +95,20 @@ class GitHubClient:
             )
             if response is None or response.status_code == 404:
                 break
+            if response.status_code == 401:
+                raise GitHubAuthenticationError(
+                    "GitHub rejected GITHUB_TOKEN. Check the Hugging Face secret and replace it if it is expired or invalid."
+                )
             if response.status_code != 200:
                 logger.error(f"Failed to fetch repos: {response.status_code}")
                 break
             data = response.json()
             if not data:
                 break
-            repos.extend(data)
+
+            # Ignore forks entirely; only index repositories owned by the user.
+            owned_repos = [repo for repo in data if not repo.get("fork", False)]
+            repos.extend(owned_repos)
             page += 1
             # 0 = unlimited, so only break early when a positive limit is set
             if effective_max > 0 and len(repos) >= effective_max:
@@ -136,29 +151,41 @@ class GitHubClient:
         return None
 
     async def fetch_repo_files(self, username: str, repo_name: str) -> List[Dict[str, str]]:
+        """Download and filter a repository in one archive request.
+
+        The previous implementation made one API request per eligible file.
+        GitHub's archive endpoint reduces that to one download per repository.
+        """
         response = await self._get(
-            f"https://api.github.com/repos/{username}/{repo_name}/git/trees/HEAD",
-            params={"recursive": "1"},
+            f"https://api.github.com/repos/{username}/{repo_name}/zipball/HEAD",
+            timeout=ARCHIVE_TIMEOUT,
         )
         if not response or response.status_code != 200:
+            logger.warning(f"Failed to download archive for {repo_name}")
             return []
 
-        tree = response.json().get("tree", [])
-        eligible_paths = []
-        for item in tree:
-            if item.get("type") != "blob":
-                continue
-            path = item.get("path", "")
-            if not any(path.endswith(ext) for ext in INDEXABLE_EXTENSIONS):
-                continue
-            if item.get("size", 0) > 100_000:
-                continue
-            eligible_paths.append(path)
+        files: List[Dict[str, str]] = []
+        try:
+            with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+                for member in archive.infolist():
+                    if member.is_dir() or member.file_size > 100_000:
+                        continue
 
-        eligible_paths = eligible_paths[:MAX_FILES_PER_REPO]
-        if not eligible_paths:
+                    path = member.filename.split("/", 1)[-1]
+                    if not any(path.endswith(ext) for ext in INDEXABLE_EXTENSIONS):
+                        continue
+
+                    try:
+                        content = archive.read(member).decode("utf-8")
+                    except (UnicodeDecodeError, RuntimeError, zipfile.BadZipFile):
+                        continue
+
+                    files.append({"path": path, "content": content})
+                    if len(files) >= MAX_FILES_PER_REPO:
+                        break
+        except zipfile.BadZipFile:
+            logger.warning(f"Invalid archive received for {repo_name}")
             return []
 
-        tasks = [self._fetch_single_file(username, repo_name, path) for path in eligible_paths]
-        results = await asyncio.gather(*tasks)
-        return [r for r in results if r is not None]
+        logger.info(f"Downloaded {len(files)} files from {repo_name} in one archive")
+        return files

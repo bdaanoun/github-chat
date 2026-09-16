@@ -10,7 +10,8 @@ llm_client = LLMClient()
 
 @router.post("/ask", response_model=AskResponse)
 async def ask_question(request: AskRequest):
-    username = request.username
+    # GitHub usernames are case-insensitive; match the profile index key.
+    username = request.username.strip().lower()
     question = request.question
 
     logger.info(f"Question for {username}: {question}")

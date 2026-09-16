@@ -11,14 +11,17 @@ pinned: false
 
 A full-stack **Retrieval-Augmented Generation (RAG)** application that lets you chat with an AI about any GitHub developer's public repositories. Load a user's profile, and the system fetches, chunks, embeds, and indexes their repo data — then answers your questions using only that context.
 
+**Try it online:** https://github-chat.netlify.app/
+
 ---
 
 ## ✨ Features
 
-- **Profile Ingestion** — Fetches all public repos + READMEs for any GitHub user via the GitHub API.
+- **Profile Ingestion** — Fetches public repositories and READMEs through the GitHub API, excluding forked repositories.
+- **Efficient Repository Downloads** — Downloads each repository as a single archive instead of making one API request per file.
 - **RAG Pipeline** — Chunks text, generates embeddings with `all-MiniLM-L6-v2`, and stores them in an in-memory FAISS index.
 - **Context-Aware Chat** — Questions are answered strictly from retrieved repository context — no hallucination.
-- **Ollama-Powered LLM** — Uses a locally-running Ollama model for answer generation (no cloud API keys needed).
+- **Google Gemini-Powered LLM** — Uses Gemini through its OpenAI-compatible API.
 - **Modern Frontend** — Clean, responsive chat UI built with vanilla HTML/CSS/JS.
 
 ---
@@ -44,10 +47,7 @@ backend/
 ### Prerequisites
 
 - **Python 3.10+**
-- **Ollama** — Install from [ollama.com](https://ollama.com) and pull a model:
-  ```bash
-  ollama pull llama3
-  ```
+- **Google Gemini API key** — Create one in [Google AI Studio](https://aistudio.google.com/app/apikey).
 - **GitHub Token** _(optional)_ — Increases API rate limits. Generate one at [github.com/settings/tokens](https://github.com/settings/tokens).
 
 ### 1. Clone & Install
@@ -96,8 +96,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 💬 Usage
 
+You can use the deployed application here: **https://github-chat.netlify.app/**
+
 1. Enter a **GitHub username** in the sidebar and click **Load Context**.
-2. Wait for the system to fetch repos, chunk text, and build the vector index.
+2. Wait for the system to fetch repositories, chunk the content, and build the vector index.
 3. Ask questions in the chat — the AI answers based only on the loaded repository data.
 
 ---
@@ -113,9 +115,9 @@ All settings are managed via environment variables or a `.env` file:
 | `OPENAI_API_BASE` | `"https://generativelanguage.googleapis.com/v1beta/openai/"` | Gemini OpenAI-compatible API URL |
 | `LLM_MODEL` | `"gemini-3.6-flash"` | Gemini model name |
 | `EMBEDDING_MODEL` | `"all-MiniLM-L6-v2"` | Sentence-transformer model for embeddings |
-| `CHUNK_SIZE` | `500` | Characters per text chunk |
-| `CHUNK_OVERLAP` | `50` | Overlap between consecutive chunks |
-| `TOP_K_RETRIEVAL` | `5` | Number of context chunks to retrieve |
+| `CHUNK_SIZE` | `150` | Approximate words per text chunk |
+| `CHUNK_OVERLAP` | `20` | Approximate overlapping words between chunks |
+| `TOP_K_RETRIEVAL` | `10` | Number of context chunks to retrieve |
 
 ---
 
@@ -124,7 +126,7 @@ All settings are managed via environment variables or a `.env` file:
 | Layer | Technology |
 |---|---|
 | **Backend** | FastAPI, Uvicorn |
-| **LLM** | Ollama (OpenAI-compatible API) |
+| **LLM** | Google Gemini (OpenAI-compatible API) |
 | **Embeddings** | Sentence-Transformers (`all-MiniLM-L6-v2`) |
 | **Vector Store** | FAISS (in-memory) |
 | **Frontend** | Vanilla HTML / CSS / JavaScript |

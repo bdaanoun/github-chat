@@ -2,7 +2,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, HTTPException
 from backend.models.schemas import ProfileLoadRequest, ProfileLoadResponse, SourceChunk
-from backend.github.client import GitHubClient, GitHubAuthenticationError
+from backend.github.client import GitHubClient, GitHubAuthenticationError, GitHubRequestError
 from backend.github.parser import GitHubParser
 from backend.rag.chunker import TextChunker
 from backend.rag.embedder import Embedder
@@ -43,7 +43,7 @@ async def load_profile(request: ProfileLoadRequest):
 
     try:
         repos = await github_client.fetch_user_repos(username)
-    except GitHubAuthenticationError as exc:
+    except (GitHubAuthenticationError, GitHubRequestError) as exc:
         logger.error(str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

@@ -33,6 +33,10 @@ class GitHubAuthenticationError(Exception):
     """Raised when GitHub rejects the configured access token."""
 
 
+class GitHubRequestError(Exception):
+    """Raised when GitHub rejects a request for a non-authentication reason."""
+
+
 class GitHubClient:
     def __init__(self):
         self.headers = {
@@ -56,14 +60,16 @@ class GitHubClient:
         async with _API_SEMAPHORE:
             try:
                 response = await self._client.get(url, **kwargs)
-                # If rate-limited, log clearly and return None
                 if response.status_code == 403:
                     reset = response.headers.get("X-RateLimit-Reset", "unknown")
+                    remaining = response.headers.get("X-RateLimit-Remaining", "unknown")
+                    limit = response.headers.get("X-RateLimit-Limit", "unknown")
+                    message = response.text[:300]
                     logger.error(
-                        f"GitHub rate limit hit! Reset at {reset}. "
-                        "Add a GITHUB_TOKEN to your .env for 5000 req/hr."
+                        f"GitHub returned 403 for {url}. "
+                        f"Rate limit={limit}, remaining={remaining}, reset={reset}. "
+                        f"Response: {message}"
                     )
-                    return None
                 return response
             except httpx.TimeoutException:
                 logger.warning(f"Timeout: {url}")
@@ -98,6 +104,10 @@ class GitHubClient:
             if response.status_code == 401:
                 raise GitHubAuthenticationError(
                     "GitHub rejected GITHUB_TOKEN. Check the Hugging Face secret and replace it if it is expired or invalid."
+                )
+            if response.status_code == 403:
+                raise GitHubRequestError(
+                    "GitHub rejected the request with 403. Check the GitHub rate-limit details in the Space logs and verify that the updated secret is active."
                 )
             if response.status_code != 200:
                 logger.error(f"Failed to fetch repos: {response.status_code}")
